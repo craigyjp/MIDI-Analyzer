@@ -59,11 +59,17 @@ void setupHardware() {
   pinMode (MIDI_LED, OUTPUT);
   pinMode (PROGRAM_LED, OUTPUT);
   pinMode (MODULATION_LED, OUTPUT);
+  pinMode (ERROR_LED, OUTPUT);
+
+  pinMode(BUTTON_1, INPUT_PULLUP);
+  pinMode(BUTTON_2, INPUT_PULLUP);
+  pinMode(BUTTON_3, INPUT_PULLUP);
 
   digitalWrite(ACT_SENSE_LED, LOW);
   digitalWrite(SYSTEM_RESET_LED, LOW);
   digitalWrite(MIDI_LED, LOW);
   digitalWrite(PROGRAM_LED, LOW);
   digitalWrite(MODULATION_LED, LOW);
+  digitalWrite(ERROR_LED, LOW);
 }
 

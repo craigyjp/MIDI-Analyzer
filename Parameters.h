@@ -1,5 +1,32 @@
+const char* VERSION = "V1.2";
+
 elapsedMillis ledOnMillis;
 
+int paramNumber = -1;
+int oldparamNumber = -1;
+int note_filter;
+int aftertouch_filter;
+int bend_filter;
+int mod_filter;
+int program_filter;
+int realtime_filter;
+int system_filter;
+int controllers_filter;
+int active_filter;
+
+boolean paramChange = false;
+
+#define EEPROM_NOTES 0
+#define EEPROM_AFTERTOUCH 1
+#define EEPROM_PITCHBEND 2
+#define EEPROM_MODULATION 3
+#define EEPROM_PROGRAM 4
+#define EEPROM_REALTIME 5
+#define EEPROM_SYSTEM 6
+#define EEPROM_CONTROLLERS 7
+#define EEPROM_ACTIVE 8
+
+static unsigned long display_timer = 0;
 static unsigned long noteOn_timer = 0;
 static unsigned long noteOff_timer = 0;
 static unsigned long control_timer = 0;

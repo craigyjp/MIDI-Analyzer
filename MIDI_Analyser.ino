@@ -2,6 +2,12 @@
 #include <RoxMux.h>
 #include "Parameters.h"
 #include "HWControls.h"
+#include <Adafruit_GFX.h>
+#include <ST7735_t3.h>
+#include <SPI.h>
+#include <EEPROM.h>
+
+ST7735_t3 tft = ST7735_t3(2, 3, 11, 13, 21);
 
 #define SR_TOTAL 4
 Rox74HC595<SR_TOTAL> sr;
@@ -15,10 +21,228 @@ Rox74HC595<SR_TOTAL> sr;
 //MIDI 5 Pin DIN
 MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
+RoxButton upButton;
+RoxButton dnButton;
+RoxButton selButton;
+
 void setup() {
+
   sr.begin(LED_DATA, LED_LATCH, LED_CLK, LED_PWM);
+
+  tft.initR(INITR_MINI160x80);
+  tft.setRotation(3);
+  tft.fillScreen(ST77XX_BLACK);
+  renderBootUpPage();
+  delay(500);
+  display_timer = millis();
+
   setupHardware();
   MIDI.begin(MIDI_CHANNEL_OMNI);
+  MIDI.turnThruOn(midi::Thru::Mode::Off);
+
+  upButton.begin();
+  upButton.setDoublePressThreshold(300);
+
+  dnButton.begin();
+  dnButton.setDoublePressThreshold(300);
+
+  selButton.begin();
+  selButton.setDoublePressThreshold(300);
+}
+
+void displayValue(byte value) {
+  switch (value) {
+    case 0:
+      tft.setCursor(120, 25);
+      tft.print("Off");
+      break;
+
+    case 1:
+      tft.setCursor(120, 25);
+      tft.print("On");
+      break;
+  }
+}
+
+void updateParam() {
+  switch (paramNumber) {
+    case 0:
+      note_filter = !note_filter;
+      EEPROM.update(EEPROM_NOTES, note_filter);
+      break;
+
+    case 1:
+      aftertouch_filter = !aftertouch_filter;
+      EEPROM.update(EEPROM_AFTERTOUCH, aftertouch_filter);
+      break;
+
+    case 2:
+      bend_filter = !bend_filter;
+      EEPROM.update(EEPROM_PITCHBEND, bend_filter);
+      break;
+
+    case 3:
+      mod_filter = !mod_filter;
+      EEPROM.update(EEPROM_MODULATION, mod_filter);
+      break;
+
+    case 4:
+      program_filter = !program_filter;
+      EEPROM.update(EEPROM_PROGRAM, program_filter);
+      break;
+
+    case 5:
+      realtime_filter = !realtime_filter;
+      EEPROM.update(EEPROM_REALTIME, realtime_filter);
+      break;
+
+    case 6:
+      system_filter = !system_filter;
+      EEPROM.update(EEPROM_SYSTEM, system_filter);
+      break;
+
+    case 7:
+      controllers_filter = !controllers_filter;
+      EEPROM.update(EEPROM_CONTROLLERS, controllers_filter);
+      break;
+
+    case 8:
+      active_filter = !active_filter;
+      EEPROM.update(EEPROM_ACTIVE, active_filter);
+      break;
+  }
+  oldparamNumber = -1;
+}
+
+void updateDisplay() {
+  if (oldparamNumber != paramNumber) {
+
+    tft.fillScreen(ST7735_BLACK);
+    tft.setCursor(0, 0);
+    tft.setTextSize(2);
+    tft.setTextColor(ST7735_WHITE);
+    tft.print("Filtering");
+    tft.setCursor(0, 25);
+    tft.setTextColor(ST7735_YELLOW);
+    switch (paramNumber) {
+      case 0:
+        note_filter = EEPROM.read(EEPROM_NOTES);
+        if (note_filter < 0 || note_filter > 1) {
+          EEPROM.update(EEPROM_NOTES, 0);
+        }
+        tft.println("Notes");
+        displayValue(note_filter);
+        break;
+
+      case 1:
+        aftertouch_filter = EEPROM.read(EEPROM_AFTERTOUCH);
+        if (aftertouch_filter < 0 || aftertouch_filter > 1) {
+          EEPROM.update(EEPROM_AFTERTOUCH, 0);
+        }
+        tft.println("After");
+        tft.setCursor(0, 50);
+        tft.println("Touch");
+        displayValue(aftertouch_filter);
+        break;
+
+      case 2:
+        bend_filter = EEPROM.read(EEPROM_PITCHBEND);
+        if (bend_filter < 0 || bend_filter > 1) {
+          EEPROM.update(EEPROM_PITCHBEND, 0);
+        }
+        tft.println("PitchBend");
+        displayValue(bend_filter);
+        break;
+
+      case 3:
+        mod_filter = EEPROM.read(EEPROM_MODULATION);
+        if (mod_filter < 0 || mod_filter > 1) {
+          EEPROM.update(EEPROM_MODULATION, 0);
+        }
+        tft.println("Mod");
+        tft.setCursor(0, 50);
+        tft.println("Wheel");
+        displayValue(mod_filter);
+        break;
+
+      case 4:
+        program_filter = EEPROM.read(EEPROM_PROGRAM);
+        if (program_filter < 0 || program_filter > 1) {
+          EEPROM.update(EEPROM_PROGRAM, 0);
+        }
+        tft.println("Program");
+        displayValue(program_filter);
+        break;
+
+      case 5:
+        realtime_filter = EEPROM.read(EEPROM_REALTIME);
+        if (realtime_filter < 0 || realtime_filter > 1) {
+          EEPROM.update(EEPROM_REALTIME, 0);
+        }
+        tft.println("Realtime");
+        displayValue(realtime_filter);
+        break;
+
+      case 6:
+        system_filter = EEPROM.read(EEPROM_SYSTEM);
+        if (system_filter < 0 || system_filter > 1) {
+          EEPROM.update(EEPROM_SYSTEM, 0);
+        }
+        tft.println("System");
+        displayValue(system_filter);
+        break;
+
+      case 7:
+        controllers_filter = EEPROM.read(EEPROM_CONTROLLERS);
+        if (controllers_filter < 0 || controllers_filter > 1) {
+          EEPROM.update(EEPROM_CONTROLLERS, 0);
+        }
+        tft.println("All");
+        tft.setCursor(0, 50);
+        tft.println("Controllers");
+        displayValue(controllers_filter);
+        break;
+
+      case 8:
+        active_filter = EEPROM.read(EEPROM_ACTIVE);
+        if (active_filter < 0 || active_filter > 1) {
+          EEPROM.update(EEPROM_ACTIVE, 0);
+        }
+        tft.println("Active");
+        tft.setCursor(0, 50);
+        tft.println("Sense");
+        displayValue(active_filter);
+        break;
+    }
+  }
+  oldparamNumber = paramNumber;
+}
+
+void checkSwitches() {
+
+  upButton.update(digitalRead(BUTTON_3), 50, LOW);
+  if (upButton.pressed()) {
+    paramNumber++;
+    if (paramNumber > 8) {
+      paramNumber = 0;
+    }
+    display_timer = millis();
+  }
+
+  dnButton.update(digitalRead(BUTTON_2), 50, LOW);
+  if (dnButton.pressed()) {
+    paramNumber--;
+    if (paramNumber < 0) {
+      paramNumber = 8;
+    }
+    display_timer = millis();
+  }
+
+  selButton.update(digitalRead(BUTTON_1), 50, LOW);
+  if (selButton.pressed()) {
+    display_timer = millis();
+    updateParam();
+  }
 }
 
 void loop() {
@@ -30,16 +254,22 @@ void loop() {
     byte type = MIDI.getType();
     byte channel = MIDI.getChannel();
     byte data1 = MIDI.getData1();
-    //byte data2 = MIDI.getData2();
+    byte data2 = MIDI.getData2();
 
     switch (type) {
       case midi::NoteOff:  // 0x80
+        if (!note_filter) {
+          MIDI.send(MIDI.getType(), MIDI.getData1(), MIDI.getData2(), MIDI.getChannel());
+        }
         sr.writePin(NOTE_OFF_LED, HIGH);
         noteOff_timer = millis();
         channelLED(channel);
         break;
 
       case midi::NoteOn:  // 0x90
+        if (!note_filter) {
+          MIDI.send(MIDI.getType(), MIDI.getData1(), MIDI.getData2(), MIDI.getChannel());
+        }
         sr.writePin(NOTE_ON_LED, HIGH);
         noteOn_timer = millis();
         channelLED(channel);
@@ -55,18 +285,32 @@ void loop() {
         switch (data1) {
 
           case 123:
+            MIDI.sendControlChange(data1, data2, channel);
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
             break;
 
+          case 64:
+            MIDI.sendControlChange(data1, data2, channel);
+            sr.writePin(SUSTAIN_LED, HIGH);
+            sustain_timer = millis();
+            channelLED(channel);
+            break;
+
           case 1:
+            if (!mod_filter) {
+              MIDI.sendControlChange(data1, data2, channel);
+            }
             digitalWrite(MODULATION_LED, HIGH);
             modulation_timer = millis();
             channelLED(channel);
             break;
 
           default:
+            if (!controllers_filter) {
+              MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(CONTROL_LED, HIGH);
             control_timer = millis();
             channelLED(channel);
@@ -75,18 +319,27 @@ void loop() {
         break;
 
       case midi::ProgramChange:  // 0xC0
+        if (!program_filter) {
+          MIDI.sendProgramChange(data1, channel);
+        }
         digitalWrite(PROGRAM_LED, HIGH);
         program_timer = millis();
         channelLED(channel);
         break;
 
       case midi::AfterTouchChannel:  // 0xD0
+        if (!aftertouch_filter) {
+          MIDI.sendAfterTouch(data1, channel);
+        }
         sr.writePin(CHANNEL_PRESSURE_LED, HIGH);
         channelPressure_timer = millis();
         channelLED(channel);
         break;
 
       case midi::PitchBend:  // 0xE0
+        if (!bend_filter) {
+          MIDI.sendPitchBend(data1, channel);
+        }
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
@@ -98,54 +351,81 @@ void loop() {
         channelLED(channel);
         break;
 
-      // case midi::TimeCodeQuarterFrame:  // 0xF1
-      //   Serial.print("TimeCode // 0xF1, index=");
-      //   Serial.print(data1 >> 4, DEC);
-      //   Serial.print(", digit=");
-      //   Serial.println(data1 & 15, DEC);
-      //   break;
+        // case midi::TimeCodeQuarterFrame:  // 0xF1
+        //   Serial.print("TimeCode // 0xF1, index=");
+        //   Serial.print(data1 >> 4, DEC);
+        //   Serial.print(", digit=");
+        //   Serial.println(data1 & 15, DEC);
+        //   break;
 
       case midi::SongPosition:  // 0xF2
+        if (!system_filter) {
+          MIDI.sendSongPosition(data1);
+        }
         sr.writePin(SONG_POS_LED, HIGH);
         songpos_timer = millis();
         break;
 
       case midi::SongSelect:  // 0xF3
+        if (!system_filter) {
+          MIDI.sendSongSelect(data1);
+        }
         sr.writePin(SONG_SEL_LED, HIGH);
         songselect_timer = millis();
         break;
 
       case midi::TuneRequest:  // 0xF6
+        if (!system_filter) {
+          MIDI.sendTuneRequest();
+        }
         sr.writePin(TUNE_REQ_LED, HIGH);
         tuneRequest_timer = millis();
         break;
 
       case midi::Clock:  // 0xF8
+        if (!realtime_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         sr.writePin(TIMING_CLOCK_LED, HIGH);
         clock_timer = millis();
         break;
 
       case midi::Start:  // 0xFA
+        if (!realtime_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         sr.writePin(START_LED, HIGH);
         songstart_timer = millis();
         break;
 
       case midi::Continue:  // 0xFB
+        if (!realtime_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         sr.writePin(CONTINUE_LED, HIGH);
         songcontinue_timer = millis();
         break;
 
       case midi::Stop:  // 0xFC
+        if (!realtime_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         sr.writePin(STOP_LED, HIGH);
         songstop_timer = millis();
         break;
 
       case midi::ActiveSensing:  // 0xFE
+        if (!active_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         digitalWrite(ACT_SENSE_LED, HIGH);
         activeSensing_timer = millis();
         break;
 
       case midi::SystemReset:  // 0xFF
+        if (!realtime_filter) {
+          MIDI.sendRealTime(MIDI.getType());
+        }
         digitalWrite(SYSTEM_RESET_LED, HIGH);
         systemReset_timer = millis();
         break;
@@ -162,23 +442,30 @@ void loop() {
     byte type = usbMIDI.getType();
     byte channel = usbMIDI.getChannel();
     byte data1 = usbMIDI.getData1();
-    //byte data2 = usbMIDI.getData2();
+    byte data2 = usbMIDI.getData2();
 
 
     switch (type) {
       case midi::NoteOff:  // 0x80
+        if (!note_filter) {
+          MIDI.sendNoteOff(data1, data2, channel);
+        }
         sr.writePin(NOTE_OFF_LED, HIGH);
         noteOff_timer = millis();
         channelLED(channel);
         break;
 
       case midi::NoteOn:  // 0x90
+        if (!note_filter) {
+          MIDI.sendNoteOn(data1, data2, channel);
+        }
         sr.writePin(NOTE_ON_LED, HIGH);
         noteOn_timer = millis();
         channelLED(channel);
         break;
 
       case midi::AfterTouchPoly:  // 0xA0
+        //MIDI.sendPolyPressure(data1, data2, channel);
         sr.writePin(POLY_PRESSURE_LED, HIGH);
         polyPressure_timer = millis();
         channelLED(channel);
@@ -188,24 +475,32 @@ void loop() {
         switch (data1) {
 
           case 123:
+            MIDI.sendControlChange(data1, data2, channel);
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
             break;
 
           case 64:
+            MIDI.sendControlChange(data1, data2, channel);
             sr.writePin(SUSTAIN_LED, HIGH);
             sustain_timer = millis();
             channelLED(channel);
             break;
 
           case 1:
+            if (!mod_filter) {
+            MIDI.sendControlChange(data1, data2, channel);
+            }
             digitalWrite(MODULATION_LED, HIGH);
             modulation_timer = millis();
             channelLED(channel);
             break;
 
           default:
+            if (!controllers_filter) {
+            MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(CONTROL_LED, HIGH);
             control_timer = millis();
             channelLED(channel);
@@ -214,18 +509,27 @@ void loop() {
         break;
 
       case midi::ProgramChange:  // 0xC0
+        if (!program_filter) {
+        MIDI.sendProgramChange(data1, channel);
+        }
         digitalWrite(PROGRAM_LED, HIGH);
         program_timer = millis();
         channelLED(channel);
         break;
 
       case midi::AfterTouchChannel:  // 0xD0
+        if (!aftertouch_filter) {
+          MIDI.sendAfterTouch(data1, channel);
+        }
         sr.writePin(CHANNEL_PRESSURE_LED, HIGH);
         channelPressure_timer = millis();
         channelLED(channel);
         break;
 
       case midi::PitchBend:  // 0xE0
+        if (!bend_filter) {
+        MIDI.sendPitchBend(data1, channel);
+        }
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
@@ -237,54 +541,69 @@ void loop() {
         channelLED(channel);
         break;
 
-      // case midi::TimeCodeQuarterFrame:  // 0xF1
-      //   Serial.print("TimeCode // 0xF1, index=");
-      //   Serial.print(data1 >> 4, DEC);
-      //   Serial.print(", digit=");
-      //   Serial.println(data1 & 15, DEC);
-      //   break;
+        // case midi::TimeCodeQuarterFrame:  // 0xF1
+        //   Serial.print("TimeCode // 0xF1, index=");
+        //   Serial.print(data1 >> 4, DEC);
+        //   Serial.print(", digit=");
+        //   Serial.println(data1 & 15, DEC);
+        //   break;
 
       case midi::SongPosition:  // 0xF2
+        if (!system_filter) {
+        MIDI.sendSongPosition(data1);
+        }
         sr.writePin(SONG_POS_LED, HIGH);
         songpos_timer = millis();
         break;
 
       case midi::SongSelect:  // 0xF3
+        if (!system_filter) {
+        MIDI.sendSongSelect(data1);
+        }
         sr.writePin(SONG_SEL_LED, HIGH);
         songselect_timer = millis();
         break;
 
       case midi::TuneRequest:  // 0xF6
+        if (!system_filter) {
+        MIDI.sendTuneRequest();
+        }
         sr.writePin(TUNE_REQ_LED, HIGH);
         tuneRequest_timer = millis();
         break;
 
       case midi::Clock:  // 0xF8
+        //MIDI.sendRealTime(usbMIDI.getType());
         sr.writePin(TIMING_CLOCK_LED, HIGH);
         clock_timer = millis();
         break;
 
       case midi::Start:  // 0xFA
+        //MIDI.sendRealTime(usbMIDI.getType());
         sr.writePin(START_LED, HIGH);
         songstart_timer = millis();
         break;
 
       case midi::Continue:  // 0xFB
+        //MIDI.sendRealTime(usbMIDI.getType());
         sr.writePin(CONTINUE_LED, HIGH);
         songcontinue_timer = millis();
         break;
 
       case midi::Stop:  // 0xFC
+        //MIDI.sendRealTime(usbMIDI.getType());
         sr.writePin(STOP_LED, HIGH);
         songstop_timer = millis();
         break;
 
       case midi::ActiveSensing:  // 0xFE
+        //MIDI.sendRealTime(usbMIDI.getType());
         digitalWrite(ACT_SENSE_LED, HIGH);
         activeSensing_timer = millis();
         break;
 
       case midi::SystemReset:  // 0xFF
+        //MIDI.sendRealTime(usbMIDI.getType());
         digitalWrite(SYSTEM_RESET_LED, HIGH);
         systemReset_timer = millis();
         break;
@@ -298,6 +617,8 @@ void loop() {
 
   sr.update();
   ledsOff();
+  checkSwitches();
+  updateDisplay();
 
   // blink the LED when any activity has happened
   if (activity) {
@@ -307,6 +628,21 @@ void loop() {
   if (ledOnMillis > 15) {
     digitalWriteFast(MIDI_LED, LOW);  // LED off
   }
+}
+
+void renderBootUpPage() {
+  tft.fillScreen(ST7735_BLACK);
+  tft.drawRect(0, 0, 160, 60, ST7735_WHITE);
+  //tft.fillRect(88, 30, 61, 11, ST7735_WHITE);
+  tft.setCursor(3, 10);
+  tft.setTextSize(2);
+  tft.setTextColor(ST7735_WHITE);
+  tft.println("MIDI ANALYSER");
+  tft.setCursor(3, 35);
+  tft.setTextSize(2);
+  tft.print("& FILTER ");
+  tft.setTextColor(ST7735_RED);
+  tft.println(VERSION);
 }
 
 void ledsOff() {
@@ -494,6 +830,12 @@ void ledsOff() {
   if ((channel16_timer > 0) && (millis() - channel16_timer > 60)) {
     sr.writePin(CHANNEL_16_LED, LOW);
     channel16_timer = 0;
+  }
+
+  if ((display_timer > 0) && (millis() - display_timer > 2000)) {
+    tft.fillScreen(ST7735_BLACK);
+    ;
+    display_timer = 0;
   }
 }
 
