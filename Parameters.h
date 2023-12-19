@@ -13,6 +13,8 @@ int realtime_filter;
 int system_filter;
 int controllers_filter;
 int active_filter;
+int sustain_filter;
+int all_notes_off_filter;
 
 boolean paramChange = false;
 
@@ -25,6 +27,8 @@ boolean paramChange = false;
 #define EEPROM_SYSTEM 6
 #define EEPROM_CONTROLLERS 7
 #define EEPROM_ACTIVE 8
+#define EEPROM_SUSTAIN 9
+#define EEPROM_NOTES_OFF 10
 
 static unsigned long display_timer = 0;
 static unsigned long noteOn_timer = 0;

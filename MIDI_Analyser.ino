@@ -110,6 +110,16 @@ void updateParam() {
       active_filter = !active_filter;
       EEPROM.update(EEPROM_ACTIVE, active_filter);
       break;
+
+    case 9:
+      sustain_filter = !sustain_filter;
+      EEPROM.update(EEPROM_SUSTAIN, sustain_filter);
+      break;
+
+    case 10:
+      all_notes_off_filter = !all_notes_off_filter;
+      EEPROM.update(EEPROM_NOTES_OFF, all_notes_off_filter);
+      break;
   }
   oldparamNumber = -1;
 }
@@ -213,6 +223,28 @@ void updateDisplay() {
         tft.println("Sense");
         displayValue(active_filter);
         break;
+
+      case 9:
+        sustain_filter = EEPROM.read(EEPROM_SUSTAIN);
+        if (sustain_filter < 0 || sustain_filter > 1) {
+          EEPROM.update(EEPROM_SUSTAIN, 0);
+        }
+        tft.println("Sustain");
+        tft.setCursor(0, 50);
+        tft.println("Pedal");
+        displayValue(sustain_filter);
+        break;
+
+      case 10:
+        all_notes_off_filter = EEPROM.read(EEPROM_NOTES_OFF);
+        if (all_notes_off_filter < 0 || all_notes_off_filter > 1) {
+          EEPROM.update(EEPROM_NOTES_OFF, 0);
+        }
+        tft.println("All Notes");
+        tft.setCursor(0, 50);
+        tft.println("Off");
+        displayValue(all_notes_off_filter);
+        break;
     }
   }
   oldparamNumber = paramNumber;
@@ -223,7 +255,7 @@ void checkSwitches() {
   upButton.update(digitalRead(BUTTON_3), 50, LOW);
   if (upButton.pressed()) {
     paramNumber++;
-    if (paramNumber > 8) {
+    if (paramNumber > 10) {
       paramNumber = 0;
     }
     display_timer = millis();
@@ -233,7 +265,7 @@ void checkSwitches() {
   if (dnButton.pressed()) {
     paramNumber--;
     if (paramNumber < 0) {
-      paramNumber = 8;
+      paramNumber = 10;
     }
     display_timer = millis();
   }
@@ -285,14 +317,18 @@ void loop() {
         switch (data1) {
 
           case 123:
-            MIDI.sendControlChange(data1, data2, channel);
+            if (!all_notes_off_filter) {
+              MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
             break;
 
           case 64:
+            if (!sustain_filter) {
             MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(SUSTAIN_LED, HIGH);
             sustain_timer = millis();
             channelLED(channel);
@@ -475,14 +511,18 @@ void loop() {
         switch (data1) {
 
           case 123:
+            if (!all_notes_off_filter) {
             MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
             break;
 
           case 64:
+            if (!sustain_filter) {
             MIDI.sendControlChange(data1, data2, channel);
+            }
             sr.writePin(SUSTAIN_LED, HIGH);
             sustain_timer = millis();
             channelLED(channel);
@@ -490,7 +530,7 @@ void loop() {
 
           case 1:
             if (!mod_filter) {
-            MIDI.sendControlChange(data1, data2, channel);
+              MIDI.sendControlChange(data1, data2, channel);
             }
             digitalWrite(MODULATION_LED, HIGH);
             modulation_timer = millis();
@@ -499,7 +539,7 @@ void loop() {
 
           default:
             if (!controllers_filter) {
-            MIDI.sendControlChange(data1, data2, channel);
+              MIDI.sendControlChange(data1, data2, channel);
             }
             sr.writePin(CONTROL_LED, HIGH);
             control_timer = millis();
@@ -510,7 +550,7 @@ void loop() {
 
       case midi::ProgramChange:  // 0xC0
         if (!program_filter) {
-        MIDI.sendProgramChange(data1, channel);
+          MIDI.sendProgramChange(data1, channel);
         }
         digitalWrite(PROGRAM_LED, HIGH);
         program_timer = millis();
@@ -528,7 +568,7 @@ void loop() {
 
       case midi::PitchBend:  // 0xE0
         if (!bend_filter) {
-        MIDI.sendPitchBend(data1, channel);
+          MIDI.sendPitchBend(data1, channel);
         }
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
@@ -550,7 +590,7 @@ void loop() {
 
       case midi::SongPosition:  // 0xF2
         if (!system_filter) {
-        MIDI.sendSongPosition(data1);
+          MIDI.sendSongPosition(data1);
         }
         sr.writePin(SONG_POS_LED, HIGH);
         songpos_timer = millis();
@@ -558,7 +598,7 @@ void loop() {
 
       case midi::SongSelect:  // 0xF3
         if (!system_filter) {
-        MIDI.sendSongSelect(data1);
+          MIDI.sendSongSelect(data1);
         }
         sr.writePin(SONG_SEL_LED, HIGH);
         songselect_timer = millis();
@@ -566,7 +606,7 @@ void loop() {
 
       case midi::TuneRequest:  // 0xF6
         if (!system_filter) {
-        MIDI.sendTuneRequest();
+          MIDI.sendTuneRequest();
         }
         sr.writePin(TUNE_REQ_LED, HIGH);
         tuneRequest_timer = millis();
