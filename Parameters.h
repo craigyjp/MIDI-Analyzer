@@ -20,6 +20,7 @@ static unsigned long tuneRequest_timer = 0;
 static unsigned long activeSensing_timer = 0;
 static unsigned long systemReset_timer = 0;
 static unsigned long clock_timer = 0;
+static unsigned long error_timer = 0;
 static unsigned long channel1_timer = 0;
 static unsigned long channel2_timer = 0;
 static unsigned long channel3_timer = 0;

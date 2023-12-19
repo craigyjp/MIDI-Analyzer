@@ -151,7 +151,8 @@ void loop() {
         break;
 
       default:
-        Serial.println("Opps, an unknown MIDI message type!");
+        digitalWrite(ERROR_LED, HIGH);
+        error_timer = millis();
     }
     activity = true;
   }
@@ -289,7 +290,8 @@ void loop() {
         break;
 
       default:
-        Serial.println("Opps, an unknown MIDI message type!");
+        digitalWrite(ERROR_LED, HIGH);
+        error_timer = millis();
     }
     activity = true;
   }
@@ -407,6 +409,11 @@ void ledsOff() {
   if ((sustain_timer > 0) && (millis() - sustain_timer > 60)) {
     sr.writePin(SUSTAIN_LED, LOW);
     sustain_timer = 0;
+  }
+
+  if ((error_timer > 0) && (millis() - error_timer > 60)) {
+    digitalWrite(ERROR_LED, LOW);
+    error_timer = 0;
   }
 
   if ((channel1_timer > 0) && (millis() - channel1_timer > 60)) {

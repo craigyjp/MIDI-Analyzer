@@ -44,6 +44,11 @@
 #define MIDI_LED 4
 #define PROGRAM_LED 23
 #define MODULATION_LED 22
+#define ERROR_LED 17
+
+#define BUTTON_1 18
+#define BUTTON_2 19
+#define BUTTON_3 20
 
 void setupHardware() {
 
