@@ -3,3 +3,5 @@ Based on the ancient StudioMaster MA36 midi Analyzer. This is a modern equivalen
 It also supports filtering of midi data on the MIDI output port, menu driven on/off filtering of notes, controllers, aftertouch, program changes etc.
 
 The box is battery operated or USB powered.
+
+![Synth](synth.jpg)
