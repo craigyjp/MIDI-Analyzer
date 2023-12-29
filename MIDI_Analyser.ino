@@ -277,6 +277,84 @@ void checkSwitches() {
   }
 }
 
+void displayIncoming(byte type, byte data1, byte data2, byte channel) {
+  tft.fillScreen(ST7735_BLACK);
+  tft.setCursor(0, 0);
+  tft.setTextSize(2);
+  tft.setTextColor(ST7735_WHITE);
+  tft.print("Messages");
+  tft.setCursor(0, 25);
+  tft.setTextColor(ST7735_YELLOW);
+
+  switch (type) {
+    case midi::NoteOff:
+      tft.print("Note Off ");
+      tft.print(data1);
+      tft.setCursor(0, 50);
+      tft.print("Velocity ");
+      tft.print(data2);
+      break;
+
+    case midi::NoteOn:
+      tft.print("Note On ");
+      tft.print(data1);
+      tft.setCursor(0, 50);
+      tft.print("Velocity ");
+      tft.print(data2);
+      break;
+
+    case midi::ControlChange:
+      switch (data1) {
+        case 1:
+          tft.print("Modulation");
+          //tft.print(data1);
+          break;
+
+        case 64:
+          tft.print("Sustain");
+          //tft.print(data1);
+          break;
+
+        case 123:
+          tft.print("All Notes Off");
+          //tft.print(data1);
+          break;
+
+        default:
+          tft.print("CC Message ");
+          tft.print(data1);
+          break;
+      }
+      tft.setCursor(0, 50);
+      tft.print("Value ");
+      tft.print(data2);
+      break;
+
+      case midi::ProgramChange:
+      tft.print("PGM Change ");
+      tft.setCursor(0, 50);
+      tft.print("Value ");
+      tft.print(data1);
+      break;
+
+      case midi::AfterTouchChannel:
+      tft.print("AfterTouch ");
+      tft.setCursor(0, 50);
+      tft.print("Value ");
+      tft.print(data1);
+      break;
+
+      case midi::PitchBend:
+      tft.print("PitchBend ");
+      tft.setCursor(0, 50);
+      tft.print("Value ");
+      tft.print(data1);
+      break;
+
+  }
+  display_timer = millis();
+}
+
 void loop() {
 
   bool activity = false;
@@ -296,6 +374,7 @@ void loop() {
         sr.writePin(NOTE_OFF_LED, HIGH);
         noteOff_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, data2, channel);
         break;
 
       case midi::NoteOn:  // 0x90
@@ -305,6 +384,7 @@ void loop() {
         sr.writePin(NOTE_ON_LED, HIGH);
         noteOn_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, data2, channel);
         break;
 
       case midi::AfterTouchPoly:  // 0xA0
@@ -323,15 +403,17 @@ void loop() {
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           case 64:
             if (!sustain_filter) {
-            MIDI.sendControlChange(data1, data2, channel);
+              MIDI.sendControlChange(data1, data2, channel);
             }
             sr.writePin(SUSTAIN_LED, HIGH);
             sustain_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           case 1:
@@ -341,6 +423,7 @@ void loop() {
             digitalWrite(MODULATION_LED, HIGH);
             modulation_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           default:
@@ -350,6 +433,7 @@ void loop() {
             sr.writePin(CONTROL_LED, HIGH);
             control_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
         }
         break;
@@ -361,6 +445,7 @@ void loop() {
         digitalWrite(PROGRAM_LED, HIGH);
         program_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::AfterTouchChannel:  // 0xD0
@@ -370,6 +455,7 @@ void loop() {
         sr.writePin(CHANNEL_PRESSURE_LED, HIGH);
         channelPressure_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::PitchBend:  // 0xE0
@@ -379,6 +465,7 @@ void loop() {
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
+        //displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::SystemExclusive:  // 0xF0
@@ -489,6 +576,7 @@ void loop() {
         sr.writePin(NOTE_OFF_LED, HIGH);
         noteOff_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, data2, channel);
         break;
 
       case midi::NoteOn:  // 0x90
@@ -498,6 +586,7 @@ void loop() {
         sr.writePin(NOTE_ON_LED, HIGH);
         noteOn_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, data2, channel);
         break;
 
       case midi::AfterTouchPoly:  // 0xA0
@@ -512,20 +601,22 @@ void loop() {
 
           case 123:
             if (!all_notes_off_filter) {
-            MIDI.sendControlChange(data1, data2, channel);
+              MIDI.sendControlChange(data1, data2, channel);
             }
             sr.writePin(ALL_NOTES_OFF_LED, HIGH);
             allNotes_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           case 64:
             if (!sustain_filter) {
-            MIDI.sendControlChange(data1, data2, channel);
+              MIDI.sendControlChange(data1, data2, channel);
             }
             sr.writePin(SUSTAIN_LED, HIGH);
             sustain_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           case 1:
@@ -535,6 +626,7 @@ void loop() {
             digitalWrite(MODULATION_LED, HIGH);
             modulation_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
 
           default:
@@ -544,6 +636,7 @@ void loop() {
             sr.writePin(CONTROL_LED, HIGH);
             control_timer = millis();
             channelLED(channel);
+            displayIncoming(type, data1, data2, channel);
             break;
         }
         break;
@@ -555,6 +648,7 @@ void loop() {
         digitalWrite(PROGRAM_LED, HIGH);
         program_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::AfterTouchChannel:  // 0xD0
@@ -564,6 +658,7 @@ void loop() {
         sr.writePin(CHANNEL_PRESSURE_LED, HIGH);
         channelPressure_timer = millis();
         channelLED(channel);
+        displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::PitchBend:  // 0xE0
@@ -573,6 +668,7 @@ void loop() {
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
+        //displayIncoming(type, data1, 0, channel);
         break;
 
       case midi::SystemExclusive:  // 0xF0
