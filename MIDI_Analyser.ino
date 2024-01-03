@@ -35,6 +35,7 @@ void setup() {
   renderBootUpPage();
   delay(500);
   display_timer = millis();
+  //renderCurrentPatchPage();
 
   setupHardware();
   MIDI.begin(MIDI_CHANNEL_OMNI);
@@ -123,6 +124,7 @@ void updateParam() {
   }
   oldparamNumber = -1;
 }
+
 
 void updateDisplay() {
   if (oldparamNumber != paramNumber) {
@@ -277,77 +279,106 @@ void checkSwitches() {
   }
 }
 
-void displayIncoming(byte type, byte data1, byte data2, byte channel) {
+void displayIncoming(byte type, int16_t data1, int data2, byte channel) {
+
+  //if (refresh_screen) {
   tft.fillScreen(ST7735_BLACK);
   tft.setCursor(0, 0);
-  tft.setTextSize(2);
+  tft.setTextSize(1);
   tft.setTextColor(ST7735_WHITE);
-  tft.print("Messages");
-  tft.setCursor(0, 25);
+
+  tft.setCursor(0, 0);
+  tft.print("Note On");
+  tft.setCursor(84, 0);
+  tft.print("Velocity");
+
+  tft.setCursor(0, 13);
+  tft.print("Note Off");
+  tft.setCursor(84, 13);
+  tft.print("Velocity");
+
+  tft.setCursor(0, 26);
+  tft.print("PitchBend");
+
+  tft.setCursor(0, 39);
+  tft.print("CC Message");
+  tft.setCursor(91, 39);
+  tft.print("Value");
+
+  tft.setCursor(0, 52);
+  tft.print("PGM Change");
+
+  tft.setCursor(0, 65);
+  tft.print("Pressure");
+  //}
+  refresh_screen = false;
+
+
   tft.setTextColor(ST7735_YELLOW);
 
   switch (type) {
     case midi::NoteOff:
-      tft.print("Note Off ");
+      tft.setTextColor(ST7735_YELLOW);
+      tft.setCursor(60, 0);
       tft.print(data1);
-      tft.setCursor(0, 50);
-      tft.print("Velocity ");
+      tft.setCursor(145, 0);
       tft.print(data2);
       break;
 
     case midi::NoteOn:
-      tft.print("Note On ");
+      tft.setCursor(60, 13);
       tft.print(data1);
-      tft.setCursor(0, 50);
-      tft.print("Velocity ");
+      tft.setCursor(145, 13);
       tft.print(data2);
       break;
 
     case midi::ControlChange:
+      tft.setTextColor(ST7735_WHITE);
       switch (data1) {
         case 1:
-          tft.print("Modulation");
-          //tft.print(data1);
+          tft.setTextColor(ST7735_WHITE);
+          tft.setCursor(0, 39);
+          //tft.print("Modulation ");
           break;
 
         case 64:
-          tft.print("Sustain");
-          //tft.print(data1);
+          tft.setTextColor(ST7735_WHITE);
+          tft.setCursor(0, 39);
+          //tft.print("Sustain    ");
           break;
 
         case 123:
-          tft.print("All Notes Off");
-          //tft.print(data1);
+          tft.setTextColor(ST7735_WHITE);
+          tft.setCursor(0, 39);
+          //tft.print("AllNotesOff");
           break;
 
         default:
-          tft.print("CC Message ");
-          tft.print(data1);
+          tft.setTextColor(ST7735_WHITE);
+          tft.setCursor(0, 39);
+          //tft.print("CC Message");
           break;
       }
-      tft.setCursor(0, 50);
-      tft.print("Value ");
+      tft.setTextColor(ST7735_YELLOW);
+      tft.setCursor(70, 39);
+      tft.print(data1);
+      tft.setCursor(135, 39);
       tft.print(data2);
       break;
 
       case midi::ProgramChange:
-      tft.print("PGM Change ");
-      tft.setCursor(0, 50);
-      tft.print("Value ");
+      tft.setCursor(70, 52);
       tft.print(data1);
       break;
 
       case midi::AfterTouchChannel:
-      tft.print("AfterTouch ");
-      tft.setCursor(0, 50);
-      tft.print("Value ");
+      tft.setCursor(70, 65);
       tft.print(data1);
       break;
 
       case midi::PitchBend:
-      tft.print("PitchBend ");
-      tft.setCursor(0, 50);
-      tft.print("Value ");
+      tft.setCursor(70, 26);
+      //tft.print("Value ");
       tft.print(data1);
       break;
 
@@ -459,13 +490,15 @@ void loop() {
         break;
 
       case midi::PitchBend:  // 0xE0
+        pitchBendValue = (data2 << 7) | data1;
+        signedPitchBendValue = pitchBendValue - 8192;
         if (!bend_filter) {
-          MIDI.sendPitchBend(data1, channel);
+          MIDI.sendPitchBend(signedPitchBendValue, channel);
         }
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
-        //displayIncoming(type, data1, 0, channel);
+        displayIncoming(type, signedPitchBendValue, 0, channel);
         break;
 
       case midi::SystemExclusive:  // 0xF0
@@ -473,13 +506,6 @@ void loop() {
         sysex_timer = millis();
         channelLED(channel);
         break;
-
-        // case midi::TimeCodeQuarterFrame:  // 0xF1
-        //   Serial.print("TimeCode // 0xF1, index=");
-        //   Serial.print(data1 >> 4, DEC);
-        //   Serial.print(", digit=");
-        //   Serial.println(data1 & 15, DEC);
-        //   break;
 
       case midi::SongPosition:  // 0xF2
         if (!system_filter) {
@@ -662,13 +688,15 @@ void loop() {
         break;
 
       case midi::PitchBend:  // 0xE0
+        pitchBendValue = (data2 << 7) | data1;
+        signedPitchBendValue = pitchBendValue - 8192;
         if (!bend_filter) {
-          MIDI.sendPitchBend(data1, channel);
+          MIDI.sendPitchBend(signedPitchBendValue, channel);
         }
         sr.writePin(PITCHBEND_LED, HIGH);
         pitchbend_timer = millis();
         channelLED(channel);
-        //displayIncoming(type, data1, 0, channel);
+        displayIncoming(type, signedPitchBendValue, 0, channel);
         break;
 
       case midi::SystemExclusive:  // 0xF0
@@ -676,13 +704,6 @@ void loop() {
         sysex_timer = millis();
         channelLED(channel);
         break;
-
-        // case midi::TimeCodeQuarterFrame:  // 0xF1
-        //   Serial.print("TimeCode // 0xF1, index=");
-        //   Serial.print(data1 >> 4, DEC);
-        //   Serial.print(", digit=");
-        //   Serial.println(data1 & 15, DEC);
-        //   break;
 
       case midi::SongPosition:  // 0xF2
         if (!system_filter) {
@@ -755,7 +776,7 @@ void loop() {
   ledsOff();
   checkSwitches();
   updateDisplay();
-
+  //renderCurrentPatchPage();
   // blink the LED when any activity has happened
   if (activity) {
     digitalWriteFast(MIDI_LED, HIGH);  // LED on
@@ -970,7 +991,7 @@ void ledsOff() {
 
   if ((display_timer > 0) && (millis() - display_timer > 2000)) {
     tft.fillScreen(ST7735_BLACK);
-    ;
+    refresh_screen = true;
     display_timer = 0;
   }
 }
