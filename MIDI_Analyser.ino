@@ -327,6 +327,7 @@ void updateDisplay() {
             tft.println(chosenMessage);
           }
           if (sendMessage) {
+            //Serial.println(1);
             MIDI.sendAfterTouch(chosenMessage, outChannel);
             sendMessage = false;
             sr.writePin(CHANNEL_PRESSURE_LED, HIGH);
@@ -523,16 +524,16 @@ void displayIncoming(byte type, int16_t data1, int data2, byte channel) {
   switch (type) {
     case midi::NoteOff:
       tft.setTextColor(ST7735_YELLOW);
-      tft.setCursor(60, 0);
+      tft.setCursor(60, 13);
       tft.print(data1);
-      tft.setCursor(145, 0);
+      tft.setCursor(140, 13);
       tft.print(data2);
       break;
 
     case midi::NoteOn:
-      tft.setCursor(60, 13);
+      tft.setCursor(60, 0);
       tft.print(data1);
-      tft.setCursor(145, 13);
+      tft.setCursor(140, 0);
       tft.print(data2);
       break;
 

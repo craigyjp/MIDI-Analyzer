@@ -1,8 +1,8 @@
 // New LEDs
 
 #define ALL_NOTES_OFF_LED 0
-#define NOTE_OFF_LED 1
-#define NOTE_ON_LED 2
+#define NOTE_ON_LED 1
+#define NOTE_OFF_LED 2
 #define POLY_PRESSURE_LED 3
 #define CONTROL_LED 4
 #define CHANNEL_PRESSURE_LED 5
